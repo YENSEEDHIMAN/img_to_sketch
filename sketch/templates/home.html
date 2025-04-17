@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo to Sketch Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <script>
+    
+    document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("modalBox");
+    const modalMessage = document.getElementById("modalMessage");
+    const uploadInput = document.getElementById("upload");
+    const convertButton = document.querySelector(".btn");
+    const fileNameDisplay = document.createElement("p");
+    const loadingText = document.createElement("p");
+
+    fileNameDisplay.style.marginTop = "10px";
+    fileNameDisplay.style.fontWeight = "bold";
+    fileNameDisplay.style.color = "#833AB4";
+
+    loadingText.textContent = "Processing...";
+    loadingText.style.marginTop = "10px"
+    loadingText.style.color = "#555";
+    loadingText.style.display = "none";
+
+    function showModal(message) {
+        modalMessage.innerText = message;
+        modal.style.display = "block";
+
+        // Hide modal after 1 seconds
+        setTimeout(() => {
+            modal.style.display = "none";
+        }, 5000);
+    }
+
+    uploadInput.addEventListener("change", function () {
+        if (uploadInput.files.length > 0) {
+            fileNameDisplay.textContent = `Selected File: ${uploadInput.files[0].name}`;
+            uploadInput.parentElement.appendChild(fileNameDisplay);
+        }
+    });
+    // Function to get CSRF token from cookies
+function getCSRFToken() {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+                cookieValue = cookie.substring('csrftoken='.length, cookie.length);
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+    convertButton.addEventListener("click", function () {
+        let file = uploadInput.files[0];
+        if (!file) {
+            showModal("Please select an image to convert.");
+            return;
+        }
+
+        let formData = new FormData();
+        formData.append("original", file);
+
+        convertButton.parentElement.appendChild(loadingText);
+        loadingText.style.display = "block";
+
+        fetch("/api/sketch/", {
+            method: "POST",
+            body: formData,
+            headers: { "Accept": "application/json" },
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingText.style.display = "none"; 
+            if (data.sketch) {
+                let sketchUrl = data.sketch;
+                let a = document.createElement("a");
+                a.href = sketchUrl;
+                a.download = "sketch.jpg";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                uploadInput.value = "";
+                fileNameDisplay.textContent = "";
+            } else {
+                showModal("Invalid file format. Please upload a JPG, PNG, or JPEG image.");
+            }
+        })
+        .catch(error => {
+            loadingText.style.display = "none"; // Hide loading text on error
+            console.error("Error:", error);
+            showModal("Something went wrong. Please try again.");
+        });
+    });
+});
+
+    </script>
+    
+        
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #E6E6FA, #D8BFD8);
+            text-align: center;
+            padding-top: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .navbar h2 {
+            font-size: 22px;
+            color: #833AB4;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            font-size: 16px;
+            color: #555;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #833AB4;
+        }
+
+        /* Main Section */
+        .main-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            max-width: 1000px;
+            margin-top: 30px;
+            gap: 60px;
+            flex-wrap: wrap;
+        }
+
+        /* Upload Container */
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 48%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 350px;
+        }
+
+        .upload-area {
+            border: 2px dashed #833AB4;
+            padding: 40px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.3s;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .upload-area:hover {
+            background: #f3e5f5;
+        }
+
+        .upload-area img {
+            width: 60px;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px 0;
+            background: #833AB4;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #5f27cd;
+        }
+
+        /* Image Preview Container */
+        .image-container {
+            width: 45%;
+            min-width: 350px;
+            text-align: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            color: #666;
+            margin-top: 80px;
+            width: 100%;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .container, .image-container {
+                width: 80%;
+            }
+        }
+        /* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    left: 50%;
+    top: 10%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 10px;
+    width: 500px;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    text-align: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    font-size: 15px;
+    color: #ff3333;
+}
+
+
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <h2>Sketchify ✨</h2>
+        <div class="nav-links">
+            <a href="">Home</a>
+            <a href="#">Features</a>
+            <a href="#">About</a>
+            <a href="#">LogIn</a>
+            <a href="#">SignUp</a>
+           
+        </div>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="heading" style="font-family: 'Brush Script MT', cursive; text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);">🎨 Sketchify Your Pics ✨</h1>
+
+    <p class="sub-heading" style="margin-top: 10px;">Give your photos an artistic twist with AI-generated pencil sketches! 🎨🖋️</p>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Upload Section -->
+
+        <div class="container">
+            <label class="upload-area" for="upload">
+                <img src="{% static 'imageUpload.76301228.png' %}" alt="Upload Icon">
+                <p>Drag & Drop or Click to Upload</p>
+                <input type="file" id="upload" accept="image/*">
+            </label>
+            <button class="btn">Convert to Sketch</button>
+        
+            <div>
+                <img id="sketch-result" src="" alt="Your Sketch" style="max-width: 100%; display: none;">
+            </div>
+        </div>
+
+        <!-- Image Preview Section -->
+        <div class="image-container">
+            <img src="{% static 'image.jpg' %}" alt="Example Sketch">
+        </div>
+    </div>
+
+    <!-- Modal Dialog Box -->
+<div id="modalBox" class="modal">
+    <div class="modal-content">
+        <p id="modalMessage">This is a message</p>
+     
+    </div>
+</div>
+
+    <div class="footer">
+        &copy; 2025 Sketchify. All rights reserved.
+    </div>
+</body>
+</html>
